@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест по статистике: Дисперсия и стандартное отклонение</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+        }
+        .katex-display {
+            margin: 0;
+        }
+        /* Custom styles for better visual feedback */
+        .correct-answer {
+            background-color: #e0fbe0;
+            border-color: #34d399;
+        }
+        .incorrect-answer {
+            background-color: #ffebee;
+            border-color: #f87171;
+        }
+        .correct-input {
+             background-color: #e0fbe0 !important;
+             border-color: #34d399 !important;
+        }
+        .incorrect-input {
+             background-color: #ffebee !important;
+             border-color: #f87171 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Start Screen -->
+    <div id="start-container" class="bg-white w-full max-w-2xl rounded-2xl shadow-lg p-6 sm:p-8 text-center">
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-4">Тест по статистике</h2>
+        <p class="text-base sm:text-lg text-slate-600 mb-6">Введите ваше имя и фамилию, чтобы начать.</p>
+        <div class="space-y-4 mb-8">
+            <input type="text" id="first-name" placeholder="Имя" class="w-full text-center text-lg border-2 border-slate-300 rounded-lg p-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors">
+            <input type="text" id="last-name" placeholder="Фамилия" class="w-full text-center text-lg border-2 border-slate-300 rounded-lg p-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors">
+            <p id="name-error" class="text-red-500 text-sm hidden">Пожалуйста, заполните оба поля.</p>
+        </div>
+        <button id="start-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-transform transform hover:scale-105">
+            Начать тест
+        </button>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quiz-container" class="bg-white w-full max-w-2xl rounded-2xl shadow-lg p-6 md:p-8 transition-all duration-300 hidden">
+        <!-- Header and Progress Bar -->
+        <div id="quiz-header" class="mb-6">
+            <div class="flex flex-wrap justify-between items-center gap-y-2 mb-2">
+                <h1 class="text-xl sm:text-2xl font-bold text-slate-800">Статистика: Дисперсия</h1>
+                 <div class="flex items-center space-x-3">
+                     <p id="timer" class="text-base font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full w-[70px] text-center tracking-wider"></p>
+                     <p id="progress-text" class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Вопрос 1 из 20</p>
+                 </div>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: 5%;"></div>
+            </div>
+        </div>
+        
+        <!-- Question Area -->
+        <div id="question-area" class="mb-6">
+            <p id="question-text" class="text-lg text-slate-700 leading-relaxed min-h-[60px]"></p>
+        </div>
+
+        <!-- Answer Area -->
+        <div id="answer-area" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <!-- Answer buttons/inputs will be generated here -->
+        </div>
+        
+        <!-- Feedback Area -->
+        <div id="feedback-area" class="min-h-[60px] flex flex-col justify-center">
+             <div id="hint-box" class="hidden cursor-pointer bg-slate-100 p-3 rounded-lg text-slate-600 text-sm">
+                <span class="font-semibold">💡 Подсказка:</span> <span id="hint-text"></span>
+            </div>
+            <div id="result-text" class="text-center font-semibold text-lg p-2 rounded-md"></div>
+        </div>
+
+        <!-- Next Button -->
+        <div class="mt-6 flex justify-end">
+            <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-transform transform hover:scale-105 hidden">
+                Далее
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-container" class="hidden bg-white w-full max-w-2xl rounded-2xl shadow-lg p-6 sm:p-8 text-center">
+        <h2 id="user-name-result" class="text-2xl sm:text-3xl font-bold text-slate-800 mb-4">Результат</h2>
+        <div class="relative w-40 h-40 mx-auto mb-6 flex items-center justify-center">
+            <svg class="w-full h-full" viewBox="0 0 36 36">
+                <path class="stroke-current text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="4"></path>
+                <path id="result-circle" class="stroke-current text-blue-600" stroke-width="4" stroke-linecap="round" stroke-dasharray="0, 100" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+            </svg>
+            <span id="score-percentage" class="absolute text-3xl sm:text-4xl font-bold text-slate-800">0%</span>
+        </div>
+        <div class="flex justify-around items-center mb-8 bg-slate-50 p-4 rounded-lg">
+             <div>
+                <p class="text-slate-500 text-sm font-medium">БАЛЛЫ</p>
+                <p id="score-text" class="text-2xl sm:text-3xl font-bold text-slate-800">0/20</p>
+             </div>
+             <div>
+                <p class="text-slate-500 text-sm font-medium">ОЦЕНКА</p>
+                <p id="grade-text" class="text-2xl sm:text-3xl font-bold text-slate-800">-</p>
+             </div>
+        </div>
+        <p id="result-message" class="text-lg sm:text-xl font-medium text-slate-700 mb-8"></p>
+        <p id="saving-status" class="text-sm text-slate-500 mb-4"></p>
+        <button id="restart-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-transform transform hover:scale-105">
+            Пройти еще раз
+        </button>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    
+        const onKatexLoad = () => {
+             if (window.renderMathInElement) {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                      {left: '$$', right: '$$', display: true},
+                      {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+             }
+        };
+
+        // --- ВАЖНО: Вставьте сюда вашу ссылку на веб-приложение Google Apps Script ---
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycfhxxJrK90vZ_0yLNsE6UViaHlEMqXo9CGHH5PgWdnkArUjGs7JXdnbgm7a_ODtMv/exec'; // Пример: 'https://script.google.com/macros/s/YOUR_ID/exec'
+
+        let quizData = [ // Made 'let' to allow modification from localStorage
+            {
+                "question": "Что измеряет дисперсия?",
+                "answerOptions": [
+                    { "text": "Среднее значение набора данных.", "isCorrect": false },
+                    { "text": "Насколько значения в наборе данных разбросаны относительно среднего значения.", "isCorrect": true },
+                    { "text": "Наиболее часто встречающееся значение в наборе данных.", "isCorrect": false },
+                    { "text": "Разницу между максимальным и минимальным значением.", "isCorrect": false }
+                ],
+                "hint": "Вспомните, что дисперсия связана с 'разбросом' или 'вариативностью' данных."
+            },
+            {
+                "question": "Что такое стандартное отклонение?",
+                "answerOptions": [
+                    { "text": "Квадрат дисперсии.", "isCorrect": false },
+                    { "text": "Квадратный корень из дисперсии.", "isCorrect": true },
+                    { "text": "Среднее арифметическое набора данных.", "isCorrect": false },
+                    { "text": "Сумма всех значений, деленная на их количество.", "isCorrect": false }
+                ],
+                "hint": "Как связаны названия 'стандартное отклонение' и 'среднеквадратическое отклонение'?"
+            },
+            {
+                "question": "Если все числа в наборе данных одинаковы, чему будет равно стандартное отклонение?",
+                "answerOptions": [
+                    { "text": "1", "isCorrect": false },
+                    { "text": "0", "isCorrect": true },
+                    { "text": "10", "isCorrect": false },
+                    { "text": "Невозможно определить.", "isCorrect": false }
+                ],
+                "hint": "Отклоняются ли значения от среднего, если они все равны этому среднему?"
+            },
+            {
+                "question": "Какой первый шаг необходимо сделать для вычисления дисперсии?",
+                "answerOptions": [
+                    { "text": "Найти медиану набора данных.", "isCorrect": false },
+                    { "text": "Найти среднее арифметическое набора данных.", "isCorrect": true },
+                    { "text": "Возвести каждое значение в квадрат.", "isCorrect": false },
+                    { "text": "Найти размах набора данных.", "isCorrect": false }
+                ],
+                "hint": "Дисперсия измеряет разброс данных *относительно* чего?"
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Дисперсия набора данных равна 16. Чему равно стандартное отклонение?",
+                "correctAnswers": ["4"],
+                "hint": "Вспомните формулу, связывающую эти два показателя.",
+                "rationale": "Стандартное отклонение — это квадратный корень из дисперсии, а $\\sqrt{16} = 4$."
+            },
+            {
+                "question": "Какой из наборов данных имеет больший разброс (большее стандартное отклонение)?<br>Набор А: {10, 20, 30}<br>Набор Б: {19, 20, 21}",
+                "answerOptions": [
+                    { "text": "Набор А", "isCorrect": true },
+                    { "text": "Набор Б", "isCorrect": false },
+                    { "text": "Их разброс одинаков.", "isCorrect": false },
+                    { "text": "Недостаточно данных для ответа.", "isCorrect": false }
+                ],
+                "hint": "Посмотрите, насколько далеко числа в каждом наборе отстоят от их центра."
+            },
+            {
+                "question": "Может ли дисперсия быть отрицательным числом?",
+                "answerOptions": [
+                    { "text": "Да, если все значения отрицательные.", "isCorrect": false },
+                    { "text": "Нет, никогда.", "isCorrect": true },
+                    { "text": "Да, если среднее значение равно нулю.", "isCorrect": false },
+                    { "text": "Только если в наборе есть выбросы.", "isCorrect": false }
+                ],
+                "hint": "Вспомните, какая математическая операция используется при расчете дисперсии, которая всегда дает неотрицательный результат."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Стандартное отклонение набора данных равно 9. Чему равна дисперсия?",
+                "correctAnswers": ["81"],
+                "hint": "Если стандартное отклонение — это корень из дисперсии, то как найти дисперсию, зная стандартное отклонение?",
+                "rationale": "Дисперсия — это квадрат стандартного отклонения, а $9^2 = 81$."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите среднее арифметическое для набора чисел: {2, 5, 8, 5}",
+                "correctAnswers": ["5"],
+                "hint": "Сложите все числа и разделите полученную сумму на их количество.",
+                "rationale": "Сумма чисел $(2+5+8+5=20)$ делится на их количество (4), что дает 5."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите дисперсию для набора данных: {1, 1, 5, 5}",
+                "correctAnswers": ["4"],
+                "hint": "Сначала найдите среднее, затем — квадраты отклонений каждого числа от среднего, и наконец — среднее этих квадратов.",
+                "rationale": "Среднее равно 3. Квадраты отклонений: $(1-3)^2=4$, $(1-3)^2=4$, $(5-3)^2=4$, $(5-3)^2=4$. Среднее квадратов отклонений: $(4+4+4+4)/4 = 4$."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите стандартное отклонение для набора данных: {1, 1, 5, 5}",
+                "correctAnswers": ["2"],
+                "hint": "Сначала вычислите дисперсию, а затем извлеките из нее квадратный корень.",
+                "rationale": "Дисперсия этого набора равна 4. Квадратный корень из 4 равен 2."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Вычислите дисперсию для набора чисел: {10, 10, 10, 10}",
+                "correctAnswers": ["0"],
+                "hint": "Если в наборе нет разброса, каким должно быть его числовое выражение?",
+                "rationale": "Все значения равны среднему (10), поэтому отклонения равны нулю, и дисперсия тоже равна нулю."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите дисперсию для набора данных: {1, 5}",
+                "correctAnswers": ["4"],
+                "hint": "Найдите среднее, которое находится ровно посередине между двумя числами.",
+                "rationale": "Среднее равно 3. Квадраты отклонений: $(1-3)^2=4$, $(5-3)^2=4$. Среднее квадратов отклонений: $(4+4)/2 = 4$."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите стандартное отклонение для набора данных: {1, 5}",
+                "correctAnswers": ["2"],
+                "hint": "Вычислите дисперсию и извлеките из результата квадратный корень.",
+                "rationale": "Дисперсия равна 4, а квадратный корень из 4 равен 2."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите дисперсию для набора данных: {7, 9, 10, 11, 13}",
+                "correctAnswers": ["4"],
+                "hint": "Не забудьте разделить сумму квадратов отклонений на количество элементов.",
+                "rationale": "Среднее равно 10. Квадраты отклонений: $(7-10)^2=9, (9-10)^2=1, (10-10)^2=0, (11-10)^2=1, (13-10)^2=9$. Среднее квадратов: $(9+1+0+1+9)/5 = 4$."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите стандартное отклонение для набора данных: {7, 9, 10, 11, 13}",
+                "correctAnswers": ["2"],
+                "hint": "Результат должен быть корнем из значения дисперсии.",
+                "rationale": "Дисперсия этого набора равна 4. Квадратный корень из 4 равен 2."
+            },
+            {
+                "question": "Для чего измеряют стандартное отклонение в реальной жизни?",
+                "answerOptions": [
+                    { "text": "Чтобы найти самое популярное значение.", "isCorrect": false },
+                    { "text": "Чтобы оценить стабильность или надежность процесса (например, в финансах или производстве).", "isCorrect": true },
+                    { "text": "Чтобы найти средний результат.", "isCorrect": false },
+                    { "text": "Чтобы найти середину отсортированного ряда данных.", "isCorrect": false }
+                ],
+                "hint": "Подумайте, что означает 'стабильность' с точки зрения разброса данных."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите дисперсию для набора данных: {3, 3, 7, 7}",
+                "correctAnswers": ["4"],
+                "hint": "Все отклонения от среднего в этом наборе по модулю одинаковы.",
+                "rationale": "Среднее равно 5. Квадраты отклонений: $(3-5)^2=4, (3-5)^2=4, (7-5)^2=4, (7-5)^2=4$. Среднее этих квадратов равно $(4+4+4+4)/4 = 4$."
+            },
+            {
+                "questionType": "FREE_RESPONSE",
+                "question": "Найдите стандартное отклонение для набора данных: {3, 3, 7, 7}",
+                "correctAnswers": ["2"],
+                "hint": "Используйте результат предыдущего вычисления дисперсии.",
+                "rationale": "Дисперсия равна 4, а $\\sqrt{4} = 2$."
+            },
+            {
+                "question": "Если к каждому числу в наборе данных прибавить 10, как изменится стандартное отклонение?",
+                "answerOptions": [
+                    { "text": "Увеличится на 10", "isCorrect": false },
+                    { "text": "Увеличится в 10 раз", "isCorrect": false },
+                    { "text": "Не изменится", "isCorrect": true },
+                    { "text": "Уменьшится на 10", "isCorrect": false }
+                ],
+                "hint": "Представьте набор чисел на числовой прямой. Если сдвинуть все точки вправо на 10, изменятся ли расстояния между ними?"
+            }
+        ];
+        
+        // --- DOM Elements ---
+        const startContainer = document.getElementById('start-container');
+        const firstNameInput = document.getElementById('first-name');
+        const lastNameInput = document.getElementById('last-name');
+        const nameError = document.getElementById('name-error');
+        const startBtn = document.getElementById('start-btn');
+        
+        const quizContainer = document.getElementById('quiz-container');
+        const questionTextEl = document.getElementById('question-text');
+        const answerArea = document.getElementById('answer-area');
+        const nextBtn = document.getElementById('next-btn');
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        const resultText = document.getElementById('result-text');
+        const hintBox = document.getElementById('hint-box');
+        const hintTextEl = document.getElementById('hint-text');
+        const timerEl = document.getElementById('timer');
+
+        const resultsContainer = document.getElementById('results-container');
+        const userNameResult = document.getElementById('user-name-result');
+        const scorePercentageEl = document.getElementById('score-percentage');
+        const scoreText = document.getElementById('score-text');
+        const gradeText = document.getElementById('grade-text');
+        const resultMessage = document.getElementById('result-message');
+        const restartBtn = document.getElementById('restart-btn');
+        const resultCircle = document.getElementById('result-circle');
+        const savingStatus = document.getElementById('saving-status');
+
+        // --- State ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let firstName = '';
+        let lastName = '';
+        let timerInterval;
+        let timeLeft;
+        const totalTime = 25 * 60; // 25 minutes in seconds
+        const quizStateKey = 'statisticsQuizStateV1';
+
+
+        // --- Functions ---
+        
+        // --- State Management Functions ---
+        function saveState() {
+            // Only save state if the quiz is currently active
+            if (quizContainer.classList.contains('hidden')) return;
+            
+            const state = {
+                firstName,
+                lastName,
+                score,
+                currentQuestionIndex,
+                timeLeft,
+                quizData, // Save the potentially shuffled question order
+            };
+            localStorage.setItem(quizStateKey, JSON.stringify(state));
+        }
+
+        function clearState() {
+            localStorage.removeItem(quizStateKey);
+        }
+
+        function resumeQuiz() {
+            const savedStateJSON = localStorage.getItem(quizStateKey);
+            if (savedStateJSON) {
+                const savedState = JSON.parse(savedStateJSON);
+
+                // Restore state variables
+                firstName = savedState.firstName;
+                lastName = savedState.lastName;
+                score = savedState.score;
+                currentQuestionIndex = savedState.currentQuestionIndex;
+                timeLeft = savedState.timeLeft;
+                quizData = savedState.quizData; // Restore shuffled order
+
+                // Update UI to show quiz
+                startContainer.classList.add('hidden');
+                quizContainer.classList.remove('hidden');
+
+                // Start quiz from saved state
+                startTimer();
+                loadQuestion();
+            }
+        }
+        
+        // --- Quiz Logic Functions ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            nextBtn.classList.add('hidden');
+            loadQuestion();
+        }
+
+        function startTimer() {
+            updateTimerDisplay(); // Initial display
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    showResults(true); // isTimeUp = true
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            seconds = seconds < 10 ? '0' + seconds : seconds;
+            timerEl.textContent = `${minutes}:${seconds}`;
+            if (timeLeft <= 30 && timeLeft > 0) { 
+                 timerEl.classList.add('text-red-500', 'font-bold');
+            } else {
+                 timerEl.classList.remove('text-red-500', 'font-bold');
+            }
+        }
+
+        function loadQuestion() {
+            resultText.textContent = '';
+            resultText.className = 'text-center font-semibold text-lg p-2 rounded-md';
+            hintBox.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            
+            if (currentQuestionIndex >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            questionTextEl.innerHTML = currentQuestion.question;
+            progressText.textContent = `Вопрос ${currentQuestionIndex + 1} из ${quizData.length}`;
+            progressBar.style.width = `${((currentQuestionIndex + 1) / quizData.length) * 100}%`;
+            answerArea.innerHTML = '';
+
+            if (currentQuestion.questionType === 'FREE_RESPONSE') {
+                answerArea.classList.remove('md:grid-cols-2');
+                answerArea.innerHTML = `
+                    <div class="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                        <input type="text" id="free-response-input" class="w-full sm:w-auto flex-grow text-center text-lg border-2 border-slate-300 rounded-lg p-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors" placeholder="Введите ответ">
+                        <button id="submit-btn" class="w-full sm:w-auto bg-slate-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-800 transition-colors">Ответить</button>
+                    </div>
+                `;
+                const input = document.getElementById('free-response-input');
+                const submitBtn = document.getElementById('submit-btn');
+                
+                input.focus();
+                submitBtn.addEventListener('click', checkFreeResponseAnswer);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') checkFreeResponseAnswer();
+                });
+
+            } else {
+                answerArea.classList.add('md:grid-cols-2');
+                const shuffledOptions = [...currentQuestion.answerOptions];
+                shuffleArray(shuffledOptions);
+                shuffledOptions.forEach(option => {
+                    const button = document.createElement('button');
+                    button.innerHTML = option.text;
+                    button.dataset.correct = option.isCorrect;
+                    button.classList.add('w-full', 'text-left', 'p-4', 'border-2', 'border-slate-300', 'rounded-lg', 'hover:bg-slate-100', 'hover:border-blue-500', 'transition-colors', 'duration-200');
+                    button.addEventListener('click', () => selectAnswer(button, option.isCorrect));
+                    answerArea.appendChild(button);
+                });
+            }
+            onKatexLoad();
+        }
+
+        function selectAnswer(button, isCorrect) {
+            disableAnswers();
+            if (isCorrect) {
+                score++;
+                button.classList.add('correct-answer');
+                resultText.textContent = 'Правильно!';
+                resultText.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                button.classList.add('incorrect-answer');
+                resultText.textContent = 'Неправильно!';
+                resultText.classList.add('bg-red-100', 'text-red-700');
+                const correctButton = Array.from(answerArea.children).find(btn => btn.dataset.correct === 'true');
+                if (correctButton) {
+                    correctButton.classList.add('correct-answer');
+                }
+            }
+            saveState(); // Save state after answering
+            nextBtn.classList.remove('hidden');
+            nextBtn.focus();
+        }
+
+        function checkFreeResponseAnswer() {
+            const input = document.getElementById('free-response-input');
+            const userAnswer = input.value.trim().replace(',', '.');
+            if (userAnswer === '') return;
+            disableAnswers();
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            if (currentQuestion.correctAnswers.includes(userAnswer)) {
+                score++;
+                input.classList.add('correct-input');
+                resultText.textContent = 'Правильно!';
+                resultText.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                input.classList.add('incorrect-input');
+                resultText.innerHTML = `Неправильно! Верный ответ: <strong>${currentQuestion.correctAnswers[0]}</strong>`;
+                resultText.classList.add('bg-red-100', 'text-red-700');
+            }
+            saveState(); // Save state after answering
+            onKatexLoad();
+            nextBtn.classList.remove('hidden');
+            nextBtn.focus();
+        }
+        
+        function disableAnswers() {
+            Array.from(answerArea.children).forEach(child => {
+                if (child.tagName === 'BUTTON') {
+                    child.disabled = true;
+                    child.classList.add('opacity-70', 'cursor-not-allowed');
+                } else {
+                    const input = child.querySelector('input');
+                    const btn = child.querySelector('button');
+                    if(input) input.disabled = true;
+                    if(btn) {
+                       btn.disabled = true;
+                       btn.classList.add('opacity-70', 'cursor-not-allowed');
+                    }
+                }
+            });
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            if (currentQuestion.hint) {
+                hintTextEl.innerHTML = currentQuestion.hint;
+                hintBox.classList.remove('hidden');
+                onKatexLoad();
+            }
+        }
+        
+        async function sendResultsToGoogleSheet(resultData) {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === '') {
+                console.warn('Google Script URL is not specified. Results will not be saved.');
+                savingStatus.textContent = 'URL для сохранения не настроен.';
+                savingStatus.classList.add('text-yellow-600');
+                return;
+            }
+            
+            savingStatus.textContent = 'Сохранение результатов...';
+            savingStatus.className = 'text-sm text-slate-500 mb-4';
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Important for sending to Google Scripts from a browser
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(resultData)
+                });
+                console.log('Results sent successfully (assumed due to no-cors mode)');
+                savingStatus.textContent = 'Результаты отправлены на сохранение!';
+                savingStatus.classList.add('text-green-600');
+
+            } catch (error) {
+                 console.error('Network error while sending results:', error);
+                 savingStatus.textContent = 'Ошибка сохранения (ошибка сети).';
+                 savingStatus.classList.add('text-red-600');
+            }
+        }
+
+        function showResults(isTimeUp = false) {
+            clearInterval(timerInterval);
+            clearState(); // Clear saved state once quiz is finished
+            
+            quizContainer.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+            
+            userNameResult.textContent = `Результат для: ${firstName} ${lastName}`;
+            scoreText.textContent = `${score}/${quizData.length}`;
+
+            const percentage = Math.round((score / quizData.length) * 100);
+            scorePercentageEl.textContent = `${percentage}%`;
+            
+            // Animate circle
+            setTimeout(() => {
+                 resultCircle.style.strokeDasharray = `${percentage}, 100`;
+            }, 100);
+
+
+            let grade = 2;
+            let gradeColor = 'text-red-500';
+
+            if(isTimeUp) {
+                resultMessage.textContent = "К сожалению, время вышло.";
+            } else {
+                if (percentage >= 90) { // 18-20 correct
+                    grade = 5;
+                    gradeColor = 'text-green-500';
+                    resultMessage.textContent = "Отлично! Вы прекрасно разбираетесь в теме!";
+                } else if (percentage >= 75) { // 15-17 correct
+                    grade = 4;
+                    gradeColor = 'text-blue-600';
+                    resultMessage.textContent = "Хороший результат! Вы хорошо знаете материал.";
+                } else if (percentage >= 50) { // 10-14 correct
+                    grade = 3;
+                    gradeColor = 'text-yellow-500';
+                     resultMessage.textContent = "Неплохо, но стоит повторить некоторые моменты.";
+                } else {
+                     resultMessage.textContent = "Нужно еще поработать над этой темой.";
+                }
+            }
+            
+            gradeText.textContent = grade;
+            gradeText.className = `text-2xl sm:text-3xl font-bold ${gradeColor}`;
+            resultCircle.className = `stroke-current ${gradeColor} transition-all duration-1000 ease-out`;
+            
+            const resultData = {
+                firstName: firstName,
+                lastName: lastName,
+                score: score,
+                totalQuestions: quizData.length,
+                percentage: percentage,
+                grade: grade
+            };
+
+            sendResultsToGoogleSheet(resultData);
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', () => {
+            firstName = firstNameInput.value.trim();
+            lastName = lastNameInput.value.trim();
+            if (firstName === '' || lastName === '') {
+                nameError.classList.remove('hidden');
+            } else {
+                nameError.classList.add('hidden');
+                
+                // Reset state for new quiz
+                score = 0;
+                currentQuestionIndex = 0;
+                timeLeft = totalTime;
+                shuffleArray(quizData);
+                
+                startContainer.classList.add('hidden');
+                quizContainer.classList.remove('hidden');
+                
+                startTimer();
+                startQuiz();
+                saveState(); // Initial save
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                saveState(); // Save before loading next question
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        });
+
+        restartBtn.addEventListener('click', () => {
+            clearState(); // Ensure state is cleared before restarting
+            resultsContainer.classList.add('hidden');
+            startContainer.classList.remove('hidden');
+            firstNameInput.value = '';
+            lastNameInput.value = '';
+            timerEl.classList.remove('text-red-500', 'font-bold');
+        });
+        
+        // Save state automatically when the user is about to leave the page
+        window.addEventListener('beforeunload', saveState);
+        
+        // --- Initial Load ---
+        resumeQuiz(); // Check for a saved state when the page loads
+        onKatexLoad(); // Initial render of any math formulas
+    });
+</script>
+
+</body>
+</html>
+
