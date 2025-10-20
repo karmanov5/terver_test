@@ -8,22 +8,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
         }
         .katex-display {
             margin: 0;
         }
-        /* Custom styles for better visual feedback */
         .correct-answer {
-            background-color: #e0fbe0;
-            border-color: #34d399;
+            background-color: #e0fbe0 !important;
+            border-color: #34d399 !important;
         }
         .incorrect-answer {
+            background-color: #ffebee !important;
+            border-color: #f87171 !important;
+        }
+        .user-choice-incorrect {
             background-color: #ffebee;
             border-color: #f87171;
         }
@@ -140,7 +140,7 @@
         // --- ВАЖНО: Вставьте сюда вашу ссылку на веб-приложение Google Apps Script ---
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycfhxxJrK90vZ_0yLNsE6UViaHlEMqXo9CGHH5PgWdnkArUjGs7JXdnbgm7a_ODtMv/exec'; // Пример: 'https://script.google.com/macros/s/YOUR_ID/exec'
 
-        let quizData = [ // Made 'let' to allow modification from localStorage
+        let quizData = [ 
             {
                 "question": "Что измеряет дисперсия?",
                 "answerOptions": [
@@ -343,23 +343,16 @@
         let timerInterval;
         let timeLeft;
         const totalTime = 25 * 60; // 25 minutes in seconds
-        const quizStateKey = 'statisticsQuizStateV1';
+        const quizStateKey = 'statisticsQuizStateV2'; // Changed key to avoid conflicts
 
 
         // --- Functions ---
         
         // --- State Management Functions ---
         function saveState() {
-            // Only save state if the quiz is currently active
             if (quizContainer.classList.contains('hidden')) return;
-            
             const state = {
-                firstName,
-                lastName,
-                score,
-                currentQuestionIndex,
-                timeLeft,
-                quizData, // Save the potentially shuffled question order
+                firstName, lastName, score, currentQuestionIndex, timeLeft, quizData,
             };
             localStorage.setItem(quizStateKey, JSON.stringify(state));
         }
@@ -372,20 +365,16 @@
             const savedStateJSON = localStorage.getItem(quizStateKey);
             if (savedStateJSON) {
                 const savedState = JSON.parse(savedStateJSON);
-
-                // Restore state variables
                 firstName = savedState.firstName;
                 lastName = savedState.lastName;
                 score = savedState.score;
                 currentQuestionIndex = savedState.currentQuestionIndex;
                 timeLeft = savedState.timeLeft;
-                quizData = savedState.quizData; // Restore shuffled order
+                quizData = savedState.quizData; 
 
-                // Update UI to show quiz
                 startContainer.classList.add('hidden');
                 quizContainer.classList.remove('hidden');
-
-                // Start quiz from saved state
+                
                 startTimer();
                 loadQuestion();
             }
@@ -399,22 +388,15 @@
             }
         }
 
-        function startQuiz() {
-            currentQuestionIndex = 0;
-            score = 0;
-            nextBtn.classList.add('hidden');
-            loadQuestion();
-        }
-
         function startTimer() {
-            updateTimerDisplay(); // Initial display
+            updateTimerDisplay(); 
             timerInterval = setInterval(() => {
                 if (timeLeft > 0) {
                     timeLeft--;
                     updateTimerDisplay();
                 } else {
                     clearInterval(timerInterval);
-                    showResults(true); // isTimeUp = true
+                    showResults(true); 
                 }
             }, 1000);
         }
@@ -447,8 +429,18 @@
             progressText.textContent = `Вопрос ${currentQuestionIndex + 1} из ${quizData.length}`;
             progressBar.style.width = `${((currentQuestionIndex + 1) / quizData.length) * 100}%`;
             answerArea.innerHTML = '';
+            
+            // NEW: Check if question has been answered
+            if (currentQuestion.isAnswered) {
+                renderAnsweredQuestion(currentQuestion);
+            } else {
+                renderNewQuestion(currentQuestion);
+            }
+            onKatexLoad();
+        }
 
-            if (currentQuestion.questionType === 'FREE_RESPONSE') {
+        function renderNewQuestion(currentQuestion) {
+             if (currentQuestion.questionType === 'FREE_RESPONSE') {
                 answerArea.classList.remove('md:grid-cols-2');
                 answerArea.innerHTML = `
                     <div class="flex flex-col sm:flex-row gap-3 items-center justify-center">
@@ -473,16 +465,68 @@
                     const button = document.createElement('button');
                     button.innerHTML = option.text;
                     button.dataset.correct = option.isCorrect;
+                    button.dataset.text = option.text; // Store original text
                     button.classList.add('w-full', 'text-left', 'p-4', 'border-2', 'border-slate-300', 'rounded-lg', 'hover:bg-slate-100', 'hover:border-blue-500', 'transition-colors', 'duration-200');
-                    button.addEventListener('click', () => selectAnswer(button, option.isCorrect));
+                    button.addEventListener('click', () => selectAnswer(button, option.isCorrect, option.text));
                     answerArea.appendChild(button);
                 });
             }
-            onKatexLoad();
         }
 
-        function selectAnswer(button, isCorrect) {
+        function renderAnsweredQuestion(question) {
             disableAnswers();
+            if (question.questionType === 'FREE_RESPONSE') {
+                 answerArea.classList.remove('md:grid-cols-2');
+                 answerArea.innerHTML = `
+                    <div class="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                        <input type="text" id="free-response-input" class="w-full sm:w-auto flex-grow text-center text-lg border-2 rounded-lg p-3 outline-none" value="${question.userAnswer}" disabled>
+                    </div>
+                `;
+                const input = document.getElementById('free-response-input');
+                if (question.wasCorrect) {
+                    input.classList.add('correct-input');
+                    resultText.textContent = 'Правильно!';
+                    resultText.classList.add('bg-green-100', 'text-green-700');
+                } else {
+                    input.classList.add('incorrect-input');
+                    resultText.innerHTML = `Неправильно! Верный ответ: <strong>${question.correctAnswers[0]}</strong>`;
+                    resultText.classList.add('bg-red-100', 'text-red-700');
+                }
+            } else { // Multiple choice
+                answerArea.classList.add('md:grid-cols-2');
+                question.answerOptions.forEach(option => {
+                    const button = document.createElement('button');
+                    button.innerHTML = option.text;
+                    button.classList.add('w-full', 'text-left', 'p-4', 'border-2', 'border-slate-300', 'rounded-lg', 'opacity-70', 'cursor-not-allowed');
+                    
+                    if (option.isCorrect) {
+                        button.classList.add('correct-answer');
+                    }
+                    if (!question.wasCorrect && option.text === question.userAnswer) {
+                        button.classList.add('user-choice-incorrect');
+                    }
+                    answerArea.appendChild(button);
+                });
+
+                if (question.wasCorrect) {
+                     resultText.textContent = 'Правильно!';
+                     resultText.classList.add('bg-green-100', 'text-green-700');
+                } else {
+                     resultText.textContent = 'Неправильно!';
+                     resultText.classList.add('bg-red-100', 'text-red-700');
+                }
+            }
+            nextBtn.classList.remove('hidden');
+            nextBtn.focus();
+        }
+
+        function selectAnswer(button, isCorrect, answerText) {
+            disableAnswers();
+            const question = quizData[currentQuestionIndex];
+            question.isAnswered = true;
+            question.userAnswer = answerText;
+            question.wasCorrect = isCorrect;
+            
             if (isCorrect) {
                 score++;
                 button.classList.add('correct-answer');
@@ -497,7 +541,7 @@
                     correctButton.classList.add('correct-answer');
                 }
             }
-            saveState(); // Save state after answering
+            saveState();
             nextBtn.classList.remove('hidden');
             nextBtn.focus();
         }
@@ -508,18 +552,24 @@
             if (userAnswer === '') return;
             disableAnswers();
 
-            const currentQuestion = quizData[currentQuestionIndex];
-            if (currentQuestion.correctAnswers.includes(userAnswer)) {
+            const question = quizData[currentQuestionIndex];
+            const isCorrect = question.correctAnswers.includes(userAnswer);
+
+            question.isAnswered = true;
+            question.userAnswer = userAnswer;
+            question.wasCorrect = isCorrect;
+
+            if (isCorrect) {
                 score++;
                 input.classList.add('correct-input');
                 resultText.textContent = 'Правильно!';
                 resultText.classList.add('bg-green-100', 'text-green-700');
             } else {
                 input.classList.add('incorrect-input');
-                resultText.innerHTML = `Неправильно! Верный ответ: <strong>${currentQuestion.correctAnswers[0]}</strong>`;
+                resultText.innerHTML = `Неправильно! Верный ответ: <strong>${question.correctAnswers[0]}</strong>`;
                 resultText.classList.add('bg-red-100', 'text-red-700');
             }
-            saveState(); // Save state after answering
+            saveState();
             onKatexLoad();
             nextBtn.classList.remove('hidden');
             nextBtn.focus();
@@ -530,7 +580,7 @@
                 if (child.tagName === 'BUTTON') {
                     child.disabled = true;
                     child.classList.add('opacity-70', 'cursor-not-allowed');
-                } else {
+                } else { // This is for the FREE_RESPONSE div
                     const input = child.querySelector('input');
                     const btn = child.querySelector('button');
                     if(input) input.disabled = true;
@@ -563,11 +613,9 @@
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Important for sending to Google Scripts from a browser
+                    mode: 'no-cors',
                     cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(resultData)
                 });
                 console.log('Results sent successfully (assumed due to no-cors mode)');
@@ -583,7 +631,7 @@
 
         function showResults(isTimeUp = false) {
             clearInterval(timerInterval);
-            clearState(); // Clear saved state once quiz is finished
+            clearState();
             
             quizContainer.classList.add('hidden');
             resultsContainer.classList.remove('hidden');
@@ -594,11 +642,9 @@
             const percentage = Math.round((score / quizData.length) * 100);
             scorePercentageEl.textContent = `${percentage}%`;
             
-            // Animate circle
             setTimeout(() => {
                  resultCircle.style.strokeDasharray = `${percentage}, 100`;
             }, 100);
-
 
             let grade = 2;
             let gradeColor = 'text-red-500';
@@ -648,25 +694,31 @@
             } else {
                 nameError.classList.add('hidden');
                 
-                // Reset state for new quiz
-                score = 0;
-                currentQuestionIndex = 0;
                 timeLeft = totalTime;
                 shuffleArray(quizData);
+                // Clear any previous answer states when starting fresh
+                quizData.forEach(q => {
+                    delete q.isAnswered;
+                    delete q.userAnswer;
+                    delete q.wasCorrect;
+                });
                 
                 startContainer.classList.add('hidden');
                 quizContainer.classList.remove('hidden');
                 
                 startTimer();
-                startQuiz();
-                saveState(); // Initial save
+                // We need to set the initial index and score here before the first save
+                currentQuestionIndex = 0;
+                score = 0;
+                loadQuestion();
+                saveState();
             }
         });
 
         nextBtn.addEventListener('click', () => {
             currentQuestionIndex++;
             if (currentQuestionIndex < quizData.length) {
-                saveState(); // Save before loading next question
+                saveState();
                 loadQuestion();
             } else {
                 showResults();
@@ -674,7 +726,7 @@
         });
 
         restartBtn.addEventListener('click', () => {
-            clearState(); // Ensure state is cleared before restarting
+            clearState();
             resultsContainer.classList.add('hidden');
             startContainer.classList.remove('hidden');
             firstNameInput.value = '';
@@ -682,12 +734,11 @@
             timerEl.classList.remove('text-red-500', 'font-bold');
         });
         
-        // Save state automatically when the user is about to leave the page
         window.addEventListener('beforeunload', saveState);
         
         // --- Initial Load ---
-        resumeQuiz(); // Check for a saved state when the page loads
-        onKatexLoad(); // Initial render of any math formulas
+        resumeQuiz();
+        onKatexLoad();
     });
 </script>
 
